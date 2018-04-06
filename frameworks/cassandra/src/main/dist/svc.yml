@@ -1,7 +1,9 @@
 name: {{SERVICE_NAME}}
 scheduler:
   principal: {{SERVICE_PRINCIPAL}}
+  principal-secret: {{SERVICE_PRINCIPAL_SECRET}}
   user: {{SERVICE_USER}}
+  zookeeper: {{CRITEO_ZK_HOST}}
 pods:
   node:
     count: {{NODES}}
@@ -16,9 +18,6 @@ pods:
       type: {{CASSANDRA_DISK_TYPE}}
       size: {{CASSANDRA_DISK_MB}}
     uris:
-      - {{CASSANDRA_JAVA_URI}}
-      - {{CASSANDRA_PYTHON_URI}}
-      - {{CASSANDRA_OPENSSL_URI}}
       - {{CASSANDRA_URI}}
       - {{BOOTSTRAP_URI}}
     resource-sets:
@@ -50,15 +49,36 @@ pods:
         cmd: |
                 set -e
 
-                ./bootstrap
-                export JAVA_HOME=$(ls -d $MESOS_SANDBOX/jdk*/jre/)
+                ./bootstrap --resolve=false --install-certs=false
                 ARGS='-f'
 
                 if [ -n "$STATSD_UDP_HOST" ]; then
                     ARGS="$ARGS -Dcassandra.metricsReporterConfigFile=metrics-reporter-config.yaml"
                 fi
 
-                exec ./apache-cassandra-{{CASSANDRA_VERSION}}/bin/cassandra $ARGS
+                # Load the CONSUL_TOKEN from .profile in home directory
+                source $(getent passwd $(whoami) | awk -F: '{print $(NF-1)}')/.profile
+                # Generate consul service JSON
+                cat <<EOF > consul_service.json
+                {
+                  "port": $CASSANDRA_NATIVE_TRANSPORT_PORT,
+                  "tags": [
+                    "$TASK_NAME"
+                    ],
+                  "name": "$CRITEO_CONSUL_SERVICE",
+                  "id": "$CRITEO_CONSUL_SERVICE-$TASK_NAME",
+                  "checks": [
+                    {
+                      "name": "cassandra_jmx_tcp_check",
+                      "tcp": "localhost:$JMX_PORT",
+                      "interval": "30s",
+                      "timeout": "5s"
+                    }
+                  ]
+                }
+                EOF
+
+                consul_service_register_deregister_json consul_service.json ./apache-cassandra-{{CASSANDRA_VERSION}}/bin/cassandra $ARGS
         configs:
           cassandra:
             template: cassandra.yaml
@@ -74,7 +94,6 @@ pods:
             dest: apache-cassandra-{{CASSANDRA_VERSION}}/conf/cassandra-rackdc.properties
         readiness-check:
           cmd: >
-                export JAVA_HOME=$(ls -d $MESOS_SANDBOX/jdk*/jre/) ;
                 export TASK_IP=$(./bootstrap --get-task-ip) &&
                 ./apache-cassandra-{{CASSANDRA_VERSION}}/bin/nodetool status -p {{TASKCFG_ALL_JMX_PORT}} | grep -q "UN  $TASK_IP"
           interval: 5
@@ -237,13 +256,11 @@ pods:
       init_system_keyspaces:
         goal: ONCE
         cmd: >
-                export PATH=$MESOS_SANDBOX/python-dist/bin:$PATH ;
-                export LD_LIBRARY_PATH=$MESOS_SANDBOX/openssl-dist:$LD_LIBRARY_PATH ;
                 echo Using $(python --version 2>&1) in $(which python) ;
                 {{#TASKCFG_ALL_SECURITY_TRANSPORT_ENCRYPTION_ENABLED}}
                 export SSL_CERTFILE=$MESOS_SANDBOX/cqlsh.ca ;
                 {{/TASKCFG_ALL_SECURITY_TRANSPORT_ENCRYPTION_ENABLED}}
-                ./bootstrap --resolve=false &&
+                ./bootstrap --resolve=false --install-certs=false &&
                 ./apache-cassandra-{{CASSANDRA_VERSION}}/bin/cqlsh {{{CASSANDRA_CQLSH_SSL_FLAGS}}} --cqlversion=3.4.0 -e "alter keyspace system_traces      WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};" "node-0-server.${FRAMEWORK_HOST}" {{TASKCFG_ALL_CASSANDRA_NATIVE_TRANSPORT_PORT}} &&
                 ./apache-cassandra-{{CASSANDRA_VERSION}}/bin/cqlsh {{{CASSANDRA_CQLSH_SSL_FLAGS}}} --cqlversion=3.4.0 -e "alter keyspace system_auth        WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};" "node-0-server.${FRAMEWORK_HOST}" {{TASKCFG_ALL_CASSANDRA_NATIVE_TRANSPORT_PORT}} &&
                 ./apache-cassandra-{{CASSANDRA_VERSION}}/bin/cqlsh {{{CASSANDRA_CQLSH_SSL_FLAGS}}} --cqlversion=3.4.0 -e "alter keyspace system_distributed WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};" "node-0-server.${FRAMEWORK_HOST}" {{TASKCFG_ALL_CASSANDRA_NATIVE_TRANSPORT_PORT}}

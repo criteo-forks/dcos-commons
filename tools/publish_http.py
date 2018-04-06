@@ -216,6 +216,7 @@ Artifacts:
     publisher = HTTPPublisher(package_name, package_dir_path, artifact_paths)
     http_url_root = publisher.launch_http()
     universe_url = publisher.build(http_url_root)
+    input('type anything to stop')
     repo_added = publisher.add_repo_to_cli(universe_url)
     logger.info('---')
     logger.info('(Re)install your package using the following commands:')

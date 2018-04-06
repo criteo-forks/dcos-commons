@@ -71,6 +71,7 @@ public class SchedulerUtils {
      * For example: /path/to/kafka => path__to__kafka-role
      */
     public static String getServiceRole(RawServiceSpec rawServiceSpec) {
+        return "default";
         // Use <svcname>-role (or throw if svcname is missing)
 
         // If the service name has a leading slash (due to folders), omit that leading slash from the role.
@@ -79,7 +80,8 @@ public class SchedulerUtils {
         // Slashes are currently banned from roles by as of mesos commit e0d8cc7c. Sounds like they will be allowed
         // again in 1.4 when hierarchical roles are supported.
         //TODO(nickbp): Revisit use of slashes here, as they're needed for hierarchical roles.
-        return withEscapedSlashes(getServiceName(rawServiceSpec)) + DEFAULT_ROLE_SUFFIX;
+//        return withEscapedSlashes(getServiceName(rawServiceSpec)) +
+//        DEFAULT_ROLE_SUFFIX;
     }
 
     /**

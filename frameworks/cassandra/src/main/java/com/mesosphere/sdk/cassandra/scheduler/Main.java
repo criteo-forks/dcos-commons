@@ -3,6 +3,9 @@ package com.mesosphere.sdk.cassandra.scheduler;
 import com.google.common.base.Joiner;
 import com.mesosphere.sdk.cassandra.api.SeedsResource;
 import com.mesosphere.sdk.config.validate.TaskEnvCannotChange;
+import com.mesosphere.sdk.dcos.Capabilities;
+import com.mesosphere.sdk.dcos.DcosVersion;
+import com.mesosphere.sdk.http.EndpointUtils;
 import com.mesosphere.sdk.scheduler.DefaultScheduler;
 import com.mesosphere.sdk.scheduler.SchedulerBuilder;
 import com.mesosphere.sdk.scheduler.SchedulerConfig;
@@ -33,6 +36,33 @@ public class Main {
         env.put("ALLOW_REGION_AWARENESS", "true");
         SchedulerConfig schedulerConfig = SchedulerConfig.fromMap(env);
         RawServiceSpec rawServiceSpec = RawServiceSpec.newBuilder(yamlSpecFile).build();
+
+        // Criteo customizations
+        Capabilities.overrideCapabilities(new Capabilities(new DcosVersion(System.getenv("CRITEO_DCOS_VERSION"))));
+        EndpointUtils.overrideEndpointUtils(new EndpointUtils() {
+            @Override
+            public String toAutoIpDomain(String serviceName, SchedulerConfig schedulerConfig) {
+                return String.format("%s.%s",
+                        sanitizeCriteoServiceName(serviceName),
+                        schedulerConfig.getServiceTLD());
+            }
+
+            @Override
+            public String toSchedulerApiVipHostname(String serviceName) {
+                return String.format("%s-api.%s",
+                        sanitizeCriteoServiceName(serviceName),
+                        System.getenv("CRITEO_VIP_HOST_TLD"));
+            }
+
+            private String sanitizeCriteoServiceName(String serviceName) {
+                serviceName = replaceDotsWithDashes(serviceName);
+                if (serviceName.startsWith("/")) {
+                    serviceName = serviceName.substring(1);
+                }
+                return serviceName.replace('/', '-');
+            }
+        });
+
         List<String> localSeeds = CassandraSeedUtils.getLocalSeeds(rawServiceSpec.getName(), schedulerConfig);
 
         return DefaultScheduler.newBuilder(
