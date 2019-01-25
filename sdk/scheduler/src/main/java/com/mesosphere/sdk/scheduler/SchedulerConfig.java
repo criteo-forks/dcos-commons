@@ -304,6 +304,7 @@ public final class SchedulerConfig {
 
   private SchedulerConfig(EnvStore envStore) {
     this.envStore = envStore;
+    this.consulToken = "";
 
 //    if (!PRINTED_BUILD_INFO.getAndSet(true)) {
 //      LOGGER.info("Build information:\n{} ", getBuildInfo().toString(2));

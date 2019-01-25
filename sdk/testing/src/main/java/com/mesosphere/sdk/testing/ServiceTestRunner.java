@@ -304,6 +304,7 @@ public class ServiceTestRunner {
         Mockito.when(mockSchedulerConfig.getMarathonName()).thenReturn("test-marathon");
         Mockito.when(mockSchedulerConfig.getSchedulerRegion()).thenReturn(Optional.of("test-scheduler-region"));
         Mockito.when(mockSchedulerConfig.isSuppressEnabled()).thenReturn(true);
+        Mockito.when(mockSchedulerConfig.getConsulToken()).thenReturn("Tesotron30000");
         Mockito.when(mockSchedulerConfig.getExecutorResources())
                 .thenReturn(Collections.singletonMap(Constants.CPUS_RESOURCE_TYPE, EXECUTOR_CPUS));
 

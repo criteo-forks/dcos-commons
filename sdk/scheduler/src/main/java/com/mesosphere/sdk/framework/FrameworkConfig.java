@@ -94,7 +94,7 @@ public final class FrameworkConfig {
    * {@link RawServiceSpec}.
    */
   public static FrameworkConfig fromRawServiceSpec(RawServiceSpec rawServiceSpec) {
-    String serviceRole = rawServiceSpec.getScheduler().getPrincipal();
+    String serviceRole = rawServiceSpec.getScheduler() == null ? "" : rawServiceSpec.getScheduler().getPrincipal();
     return new FrameworkConfig(
         rawServiceSpec.getName(),
         serviceRole,
@@ -314,7 +314,7 @@ public final class FrameworkConfig {
    * Returns the 'main' role to register as.
    */
   public String getRole() {
-    return role;
+    return getPrincipal();
   }
 
   /**
