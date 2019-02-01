@@ -615,6 +615,7 @@ public final class SchedulerConfig {
 
   public JSONObject getBuildInfo() {
     JSONObject jsonObject = new JSONObject();
+    /*
     jsonObject.put(PACKAGE_NAME_ENV, getPackageName());
     jsonObject.put(PACKAGE_VERSION_ENV, getPackageVersion());
     jsonObject.put("PACKAGE_BUILT_AT", Instant.ofEpochMilli(getPackageBuildTimeMs()));
@@ -622,6 +623,7 @@ public final class SchedulerConfig {
     jsonObject.put("SDK_VERSION", SDKBuildInfo.VERSION);
     jsonObject.put("SDK_GIT_SHA", SDKBuildInfo.GIT_SHA);
     jsonObject.put("SDK_BUILT_AT", Instant.ofEpochMilli(SDKBuildInfo.BUILD_TIME_EPOCH_MS));
+    */
     return jsonObject;
   }
 
