@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/mesosphere/dcos-commons/cli/config"
@@ -166,8 +165,12 @@ func GetDCOSURL() string {
 
 // CreateServiceURL creates a service URL of the form http://clusterurl.com/service/<servicename>/<urlPath>[?urlQuery]
 func CreateServiceURL(urlPath, urlQuery string) *url.URL {
-	joinedURLPath := path.Join("service", config.ServiceName, urlPath)
-	return CreateURL(GetDCOSURL(), joinedURLPath, urlQuery)
+	//joinedURLPath := path.Join("service", config.ServiceName, urlPath)
+	//return CreateURL(GetDCOSURL(), joinedURLPath, urlQuery)
+	parsedUrl, _  := url.Parse(config.ServiceName)
+	parsedUrl.Path = urlPath
+	parsedUrl.RawQuery = urlQuery
+	return parsedUrl //CreateURL("http://incubator-consulkv-poc.pa4.preprod.crto.in", joinedURLPath, urlQuery)
 }
 
 // CreateURL creates a URL of the form <baseURL>/<urlPath>[?urlQuery]
